@@ -1,4 +1,5 @@
 const express = require('express')
+const auth = require('../middlewares/auth')
 const User = require('../models/user')
 
 const router = new express.Router()
@@ -27,15 +28,18 @@ router.get('/users/:id', async (req, res) => {
 })
 
 router.get('/login', async (req, res) => {
-    try{
-        const tempUser = new User(-1, req.body.email, req.body.password)
-        const res = await tempUser.login()
-        if(!res) throw new Error()
-        console.log('[user route]',user)
-        res.send(user)
-    }catch(err){
-        res.status(400).send({error: 'Invalid Authentication'})
-    }
+    const user = new User(-1, req.body.email, req.body.password, [])
+    user.login().then( token => {
+        res.send({user, token})
+    }).catch( err => {
+        console.log('Throwing error', err)
+        res.status(404).send({error: 'Invalid Credentials'})
+    })
+})
+
+router.get('/logout', auth,  async (req, res) => {
+    req.user.logout(req.token)
+    res.send()
 })
 
 module.exports = router

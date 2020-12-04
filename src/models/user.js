@@ -2,10 +2,11 @@ const pool = require('../db/config')
 const jwt = require('jsonwebtoken')
 
 class User{
-    constructor(id, email, password){
+    constructor(id, email, password, tokens){
         this._id = id
         this.email = email
         this.password = password
+        this.tokens = tokens
     }
 
     static getUsers(){
@@ -30,19 +31,32 @@ class User{
 
     login(){
         return new Promise( (resolve, reject) => {
-            pool.query('select * from users where email='+this.email, (err, res) => {
-                user = res.rows[0]
-                if(err || user) reject()
+            pool.query("select * from users where email='"+this.email+"'", (err, res) => {
+                const user = res.rows[0]
+                if(err || !user) reject(err)
                 if(user.password === this.password) {
+                    this._id = user._id
+                    this.tokens = user.tokens
                     const token = jwt.sign({_id: user._id}, 'bacha.code')
-                    pool.query('insert into auth_tokens (user_id, token) values ('+ user._id+', '+token+')', (err, res) => {
-                        if(err) reject()
-                        resolve({user, token})
-                    })
+                    this.tokens.push(token)
+                    this.save()
+                    resolve(token)
                 }
-                reject()
+                reject('password not matched')
             })
         } )
+    }
+
+    logout(sessionToken){
+        this.tokens = this.tokens.filter( token => {
+            return token !== sessionToken 
+        } )
+        console.log(this.tokens)
+        this.save()
+    }
+
+    async save(){
+        await pool.query("update users set email = $1, password = $2, tokens = $3 where _id = $4", [this.email, this.password, this.tokens, this._id] )
     }
 }
 
