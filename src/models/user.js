@@ -13,7 +13,6 @@ class User{
         return new Promise( (resolve, reject) => {
             pool.query('select * from users', (err, res) => {
                 if(err) reject()
-                console.log('[user model]', res.rows)
                 resolve(res.rows)
             })
         } )
@@ -23,7 +22,6 @@ class User{
         return new Promise( (resolve, reject) => {
             pool.query('select * from users where _id='+id, (err, res) => {
                 if(err || res.rowCount === 0) reject()
-                console.log('[user model]', res.rows)
                 resolve(res.rows[0])
             })
         } )
